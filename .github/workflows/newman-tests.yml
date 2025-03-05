@@ -25,4 +25,4 @@ jobs:
         run: npm install -g newman
 
       - name: Run Postman Collection
-        run: newman run testing-api.json
+        run: newman run Navirego API.postman_collection 1.json
