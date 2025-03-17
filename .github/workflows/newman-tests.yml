@@ -4,56 +4,27 @@ on:
   push:
     branches:
       - main
-      - dev_**
   workflow_dispatch:
     inputs:
       branch:
         description: 'Branch to Deploy'
         required: true
         default: 'main'
-      environment:
-        description: 'Select the target environment'
-        required: true
-        type: choice
-        options:
-          - dev
-          - prod
-        default: dev
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H navirego-dev-ai-pipeline >> ~/.ssh/known_hosts
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-      - name: Deploy to Server
-        run: |
-          ssh -i ~/.ssh/id_rsa user@navirego-dev-ai-pipeline << EOF
-            set -e
-            echo "Switching to root user"
-            sudo -i
+      - name: Install Newman
+        run: npm install -g newman
 
-            echo "Navigating to Pipeline Repository"
-            cd /home/ai-pipeline/Navirego-AI-Pipeline/
-
-            echo "Stopping Existing Pipeline"
-            ./stop.sh
-
-            echo "Fetching Latest Changes"
-            git fetch --all
-            git checkout ${{ github.event.inputs.branch || github.ref_name }}
-            git pull origin ${{ github.event.inputs.branch || github.ref_name }}
-
-            echo "Starting Pipeline for ${{ github.event.inputs.environment || 'dev' }}"
-            ./start_debian.sh ${{ github.event.inputs.environment || 'dev' }}
-          EOF
+      - name: Run Postman Collection
+        run: newman run testing2.json
